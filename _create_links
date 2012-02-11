@@ -1,0 +1,34 @@
+#! /usr/bin/env python
+import os
+import errno
+
+def should_link(i):
+	if not i.startswith("."):
+		return False
+	elif item.endswith(".swp"):
+		return False
+	elif item in (".git",):
+		return False
+	return True
+
+HOME = os.environ["HOME"]
+dotfiles = os.path.abspath(os.path.dirname(__file__))
+def dotpath(p): return os.path.relpath(os.path.join(dotfiles,p), HOME)
+def homepath(p): return os.path.join(HOME, p)
+
+for item in os.listdir( dotfiles ):
+	if should_link(item):
+		home, dot = homepath(item), dotpath(item) 
+		print "LINK", home, dot
+		try:
+			os.symlink( dot, home )
+		except OSError,e:
+			if e.errno == errno.EEXIST:
+				if os.readlink( home ) == dot:
+					pass
+				else:
+					raise
+			else:
+				raise
+	else:
+		print "skip", item
