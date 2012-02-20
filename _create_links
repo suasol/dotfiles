@@ -3,32 +3,49 @@ import os
 import errno
 
 def should_link(i):
-	if not i.startswith("."):
+	if i.startswith("_") or i.startswith("."):
 		return False
-	elif item.endswith(".swp"):
-		return False
-	elif item in (".git",):
+	elif i.endswith(".swp"):
 		return False
 	return True
 
-HOME = os.environ["HOME"]
-dotfiles = os.path.abspath(os.path.dirname(__file__))
-def dotpath(p): return os.path.relpath(os.path.join(dotfiles,p), HOME)
-def homepath(p): return os.path.join(HOME, p)
+def doit(options):
+	HOME = os.environ["HOME"]
+	dotfiles = os.path.abspath(os.path.dirname(__file__))
+	def dotpath(p): return os.path.relpath(os.path.join(dotfiles,p), HOME)
+	def homepath(p): return os.path.join(HOME, "."+p)
 
-for item in os.listdir( dotfiles ):
-	if should_link(item):
-		home, dot = homepath(item), dotpath(item) 
-		print "LINK", home, dot
-		try:
-			os.symlink( dot, home )
-		except OSError,e:
-			if e.errno == errno.EEXIST:
-				if os.readlink( home ) == dot:
-					pass
-				else:
-					raise
-			else:
-				raise
-	else:
-		print "skip", item
+	for item in os.listdir( dotfiles ):
+		if should_link(item):
+			home, dot = homepath(item), dotpath(item)
+			if options.verbose:
+				print "LINK", home, dot
+			if options.dry_run == False:
+				try:
+					os.symlink( dot, home )
+				except OSError,e:
+					if e.errno == errno.EEXIST:
+						if os.readlink( home ) == dot:
+							pass
+						else:
+							raise
+					else:
+						raise
+		else:
+			if options.verbose:
+				print "skip", item
+	# todo: check for dangling symlinks
+
+def main():
+	import optparse
+        parser = optparse.OptionParser()
+	parser.add_option("--dry-run", action="store_true", default=False)
+	parser.add_option("-v", "--verbose", action="count", default=1)
+	parser.add_option("-q", "--quiet", action="count", default=0)
+        options, args = parser.parse_args()
+	options.verbose -= options.quiet
+	doit(options)
+
+if __name__=="__main__":
+	main()
+	
